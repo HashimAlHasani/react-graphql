@@ -146,6 +146,7 @@ function App() {
             Name:
           </label>
           <input
+            required
             id="name"
             type="text"
             value={name}
@@ -163,6 +164,7 @@ function App() {
             Industry:
           </label>
           <input
+            required
             id="industry"
             type="text"
             value={industry}

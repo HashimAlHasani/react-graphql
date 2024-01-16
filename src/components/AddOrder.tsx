@@ -1,13 +1,63 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, gql } from "@apollo/client";
 
 export type AppProps = {
   customerId: number;
 };
 
+const GET_DATA = gql`
+  {
+    customers {
+      id
+      name
+      industry
+      orders {
+        id
+        description
+        totalInCents
+      }
+    }
+  }
+`;
+
+const MUTATE_DATA = gql`
+  mutation MUTATE_DATA(
+    $description: String!
+    $totalInCents: Int!
+    $customer: ID
+  ) {
+    createOrder(
+      customer: $customer
+      description: $description
+      totalInCents: $totalInCents
+    ) {
+      order {
+        id
+        customer {
+          id
+        }
+        description
+        totalInCents
+      }
+    }
+  }
+`;
+
 export default function AddOrder({ customerId }: AppProps) {
   const [active, setActive] = useState(false);
   const [description, setDescription] = useState("");
   const [cost, setCost] = useState<number>(NaN);
+  const [createOrder, { loading, error, data }] = useMutation(MUTATE_DATA, {
+    refetchQueries: [{ query: GET_DATA }],
+  });
+
+  useEffect(() => {
+    if (data) {
+      console.log(data);
+      setDescription("");
+      setCost(NaN);
+    }
+  }, [data]);
 
   return (
     <div>
@@ -26,11 +76,19 @@ export default function AddOrder({ customerId }: AppProps) {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              createOrder({
+                variables: {
+                  customer: customerId,
+                  description: description,
+                  totalInCents: cost * 100,
+                },
+              });
+              setActive(false);
             }}
             className="max-w-md mx-auto bg-white p-8 rounded shadow-md mt-10 border border-black"
           >
             <h3 className=" text-3xl text-left mr-[10%] font-bold">
-              Add A Customer:
+              Add an Order:
             </h3>
             <br />
             <div className="mb-4">
@@ -41,6 +99,7 @@ export default function AddOrder({ customerId }: AppProps) {
                 Description:
               </label>
               <input
+                required
                 id="description"
                 type="text"
                 value={description}
@@ -58,6 +117,7 @@ export default function AddOrder({ customerId }: AppProps) {
                 Cost:
               </label>
               <input
+                required
                 id="cost"
                 type="number"
                 value={isNaN(cost) ? "" : cost}
@@ -67,22 +127,14 @@ export default function AddOrder({ customerId }: AppProps) {
                 className="w-full px-3 py-2 border rounded shadow appearance-none border-black"
               />
             </div>
-            {/*
-            <div className="flex items-center justify-center">
-              <button
-                disabled={createCustomerLoading ? true : false}
-                type="submit"
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue active:bg-blue-800"
-              >
-                Submit
-              </button>
-              {createCustomerError ? <p> Error Creating Customer </p> : null}
-            </div>
-            */}
-            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+            <button
+              disabled={loading ? true : false}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
               Add Order
             </button>
             <button
+              disabled={loading ? true : false}
               onClick={() => {
                 setActive(false);
               }}
@@ -90,6 +142,7 @@ export default function AddOrder({ customerId }: AppProps) {
             >
               Close
             </button>
+            {error ? <p>Something Went Wrong</p> : null}
           </form>
         </div>
       ) : null}
