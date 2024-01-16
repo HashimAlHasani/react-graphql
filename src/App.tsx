@@ -1,11 +1,19 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import { useQuery, useMutation, gql } from "@apollo/client";
+import AddOrder from "./components/AddOrder";
+
+export type Order = {
+  id: number;
+  description: string;
+  totalInCents: number;
+};
 
 export type Customer = {
   id: number;
   name: string;
   industry: string;
+  orders: Order[];
 };
 
 const GET_DATA = gql`
@@ -14,6 +22,11 @@ const GET_DATA = gql`
       id
       name
       industry
+      orders {
+        id
+        description
+        totalInCents
+      }
     }
   }
 `;
@@ -57,6 +70,7 @@ function App() {
   });
   return (
     <div className="App">
+      <h1 className=" text-3xl text-center mr-[14.5%] font-bold">Customers:</h1>
       {error ? <p> Something went wrong </p> : null}
       {loading ? (
         <div className="text-center">
@@ -84,9 +98,28 @@ function App() {
       {data
         ? data.customers.map((customer: Customer) => {
             return (
-              <p className="text-center" key={customer.id}>
-                {customer.name + " " + customer.industry}
-              </p>
+              <div key={customer.id}>
+                <h2 className="text-center font-bold text-4xl">
+                  {customer.name + " (" + customer.industry + ")"}
+                </h2>
+                {customer.orders.map((order: Order) => {
+                  return (
+                    <div key={order.id}>
+                      <p className="text-center">
+                        {order.description} ( $
+                        {(order.totalInCents / 100).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        )
+                      </p>
+                    </div>
+                  );
+                })}
+                <div className="flex justify-center items-center w-screen">
+                  <AddOrder customerId={customer.id} />
+                </div>
+              </div>
             );
           })
         : null}
@@ -101,6 +134,10 @@ function App() {
         }}
         className="max-w-md mx-auto bg-white p-8 rounded shadow-md mt-10 border border-black"
       >
+        <h3 className=" text-3xl text-left mr-[10%] font-bold">
+          Add A Customer:
+        </h3>
+        <br />
         <div className="mb-4">
           <label
             htmlFor="name"
@@ -137,6 +174,7 @@ function App() {
         </div>
         <div className="flex items-center justify-center">
           <button
+            disabled={createCustomerLoading ? true : false}
             type="submit"
             className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue active:bg-blue-800"
           >
